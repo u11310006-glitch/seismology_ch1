@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地震學大師的探索筆記</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- 小圖示組件 (代替 Lucide React 組件) ---
+        const Icon = ({ name, className }) => {
+            useEffect(() => {
+                lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
+
+        // --- SVG 組件 ---
+        const EarthInteriorSVG = () => (
+            <svg viewBox="0 0 200 200" className="w-full h-48 max-w-xs mx-auto my-4">
+                <circle cx="100" cy="100" r="90" fill="#2d3748" />
+                <circle cx="100" cy="100" r="80" fill="#f6e05e" stroke="#ecc94b" strokeWidth="2" />
+                <circle cx="100" cy="100" r="45" fill="#ed8936" stroke="#dd6b20" strokeWidth="2" />
+                <circle cx="100" cy="100" r="20" fill="#e53e3e" stroke="#c53030" strokeWidth="2" />
+                <path d="M 100 20 L 100 0" stroke="white" strokeWidth="2" strokeDasharray="2 2" />
+                <text x="105" y="15" fill="white" fontSize="10">地殼 (很薄的一層)</text>
+                <text x="100" y="60" fill="black" fontSize="10" textAnchor="middle">地函 (固態岩石)</text>
+                <text x="100" y="85" fill="black" fontSize="10" textAnchor="middle">外核 (液態鐵鎳)</text>
+                <text x="100" y="103" fill="white" fontSize="8" textAnchor="middle">內核(固)</text>
+            </svg>
+        );
+
+        const WaveAnimationSVG = () => {
+            const [offset, setOffset] = useState(0);
+            useEffect(() => {
+                const interval = setInterval(() => setOffset(o => (o + 2) % 100), 50);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <svg viewBox="0 0 300 150" className="w-full h-48 max-w-md mx-auto my-4 bg-white rounded-lg shadow-inner border border-slate-200">
+                    <text x="10" y="30" fontSize="14" fontWeight="bold" fill="#2b6cb0">P波 (縱波) - 像彈簧</text>
+                    <g transform="translate(10, 50)">
+                        {Array.from({ length: 25 }).map((_, i) => {
+                            const spacing = 10 + Math.sin((i * 10 - offset) * (Math.PI / 50)) * 5;
+                            return <rect key={i} x={i * 11 + spacing} y="0" width="2" height="20" fill="#2b6cb0" />;
+                        })}
+                    </g>
+                    <text x="10" y="100" fontSize="14" fontWeight="bold" fill="#c53030">S波 (橫波) - 像甩繩子</text>
+                    <path 
+                        d={`M 10 130 ${Array.from({ length: 28 }).map((_, i) => {
+                            const x = 10 + i * 10;
+                            const y = 130 + Math.sin((x - offset * 2) * (Math.PI / 40)) * 15;
+                            return `L ${x} ${y}`;
+                        }).join(' ')}`} 
+                        fill="none" stroke="#c53030" strokeWidth="3" 
+                    />
+                </svg>
+            );
+        };
+
+        const SeismogramSVG = () => (
+            <svg viewBox="0 0 300 150" className="w-full h-48 max-w-md mx-auto my-4 bg-white rounded-lg shadow-inner border border-slate-200">
+                <text x="10" y="20" fontSize="12" fontWeight="bold" fill="#2d3748">天然地震 (P波小，表面波大)</text>
+                <path d="M 10 50 L 50 50 L 52 45 L 55 55 L 58 40 L 60 60 L 65 48 L 70 50 L 100 50 L 110 30 L 120 70 L 130 20 L 140 80 L 150 10 L 160 90 L 170 30 L 180 70 L 190 40 L 200 60 L 280 50" fill="none" stroke="#3182ce" strokeWidth="1.5" />
+                <text x="10" y="100" fontSize="12" fontWeight="bold" fill="#2d3748">核武爆炸 (P波極大且尖銳)</text>
+                <path d="M 10 130 L 50 130 L 52 90 L 55 170 L 58 100 L 60 160 L 65 110 L 70 150 L 80 120 L 280 130" fill="none" stroke="#e53e3e" strokeWidth="1.5" />
+            </svg>
+        );
+
+        const BuildingResonanceSVG = () => {
+            const [time, setTime] = useState(0);
+            useEffect(() => {
+                const interval = setInterval(() => setTime(t => t + 0.1), 50);
+                return () => clearInterval(interval);
+            }, []);
+            const swayLow = Math.sin(time * 3) * 2;
+            const swayMid = Math.sin(time * 1.5) * 15;
+            const swayHigh = Math.sin(time * 0.5) * 5;
+
+            return (
+                <svg viewBox="0 0 300 150" className="w-full h-48 max-w-md mx-auto my-4 bg-blue-50 rounded-lg shadow-inner">
+                    <line x1="0" y1="130" x2="300" y2="130" stroke="#718096" strokeWidth="4" />
+                    <g transform={`translate(${50 + swayLow}, 130)`}><rect x="-15" y="-40" width="30" height="40" fill="#a0aec0" /><text x="0" y="-50" fontSize="10" textAnchor="middle">矮樓</text></g>
+                    <g transform={`translate(${150 + swayMid}, 130)`}><rect x="-15" y="-80" width="30" height="80" fill="#f56565" /><text x="0" y="-90" fontSize="10" textAnchor="middle" fill="#c53030" fontWeight="bold">共振中！</text></g>
+                    <g transform={`translate(${250 + swayHigh}, 130)`}><rect x="-15" y="-120" width="30" height="120" fill="#a0aec0" /><text x="0" y="-125" fontSize="10" textAnchor="middle">高樓</text></g>
+                </svg>
+            );
+        };
+
+        // --- 主程式 ---
+        const topics = [
+            { id: 1, title: "地震學作為探索地球內部的工具", icon: "globe", q: "我們無法把地球切開來看，那怎麼知道地底下長什麼樣子呢？", a: "靠的是「地震波」這位最強大的地下探險家！", explanation: "人類目前的鑽探極限大約只有 13 公里深，連「蘋果皮」都沒削破。但地震波會穿透整個地球，遇不同物質會折射或反射，就像給地球照 X 光。", analogy: "就像你拍打西瓜，聽聲音就能判斷裡面是空心還是扎實的。", funFact: "1936年，丹麥科學家萊曼發現地震波折射，證實了地球有固態內核。", svg: <EarthInteriorSVG /> },
+            { id: 2, title: "地震波的傳播行為 (P波與S波)", icon: "activity", q: "地震來臨時，為什麼常常先感覺上下顛簸，接著才是左右搖晃？", a: "因為「P波」跑得比「S波」快！", explanation: "P波是縱波，速度最快，能穿透固液體；S波是橫波，速度慢但破壞力大，且無法穿透液體。", analogy: "P波像推拉彈簧，S波像甩繩子。", funFact: "因為 S 波無法穿透液體，我們才確信外核是液體。", svg: <WaveAnimationSVG /> },
+            { id: 3, title: "地下資源的地震反射勘探法", icon: "zap", q: "石油公司是怎麼在茫茫大地中找到石油的？", a: "利用「人工地震波」的反射原理來畫地下地圖！", explanation: "工程師引發小型震動，波遇到不同岩層會反射回地表。透過紀錄回傳時間，可以繪製地下 3D 地形。", analogy: "就像蝙蝠利用超聲波的回聲定位捉蚊子。", funFact: "這項技術甚至能分辨出岩層中是水還是油。" },
+            { id: 4, title: "地震危害（Hazard）與風險（Risk）", icon: "alert-triangle", q: "為什麼同樣規模的地震，各國死傷人數天差地遠？", a: "因為「危害」雖然一樣大，但「風險」大不相同！", explanation: "危害是自然現象（震動）；風險是潛在損失。強震發生在無人區風險低，發生在老舊城市風險極高。", analogy: "危害是暴雨，風險是你沒帶傘出門會淋濕的機率。", funFact: "2010年海地與智利地震的慘烈差異，主因是耐震規範的落實程度。" },
+            { id: 5, title: "地震工程：共振效應", icon: "activity", q: "是不是越高的樓房越容易倒塌？", a: "不一定！取決於建築是否與地震波發生了「共振」。", explanation: "當震動頻率與建築自然頻率一致時，擺幅會劇烈放大。低頻波易讓高樓共振，高頻波易讓矮房共振。", analogy: "就像推鞦韆，頻率對了就越盪越高。", funFact: "1985年墨西哥城地震，10-14層的中高樓倒塌最慘，高樓和矮房反而沒事。", svg: <BuildingResonanceSVG /> },
+            { id: 6, title: "地震預測與預報的挑戰", icon: "activity", q: "我們能提前知道明天哪裡會發生大地震嗎？", a: "目前還無法做到「短期預測」，但能做「長期預報」。", explanation: "預測需要精確時地，目前科學做不到。預警則是利用電磁波比地震波快的原理，在 S 波到達前爭取幾秒逃生。", analogy: "預測是斷定明天三點心臟病發；預報是評估未來十年有30%機率發病。", funFact: "動物感知地震通常只是對先到的 P 波有反應，而非「提前幾天」預知。" },
+            { id: 7, title: "次生災害：海嘯與土壤液化", icon: "globe", q: "地震可怕的只有房子的搖晃嗎？", a: "不，海嘯與土壤液化有時更致命！", explanation: "海底斷層錯動引發海嘯；震動讓飽含水分的沙土變像泥漿，導致房屋下陷。", analogy: "像站在濕沙灘上原地踏步，腳會陷進去。", funFact: "日本311地震 90% 以上死傷是由海嘯造成的。" },
+            { id: 8, title: "全球安全：核武試驗監測", icon: "alert-triangle", q: "如果有國家偷偷地下試爆核彈，我們知道嗎？", a: "可以！地震儀是地球的終極測謊機。", explanation: "核爆是全方位膨脹，P波極大且無S波；天然地震是斷層錯動，S波很明顯。", analogy: "地震像撕開魔鬼氈；核爆像刺破氣球。", funFact: "地震學的進步促成了冷戰時期的核武限制條約。", svg: <SeismogramSVG /> },
+            { id: 9, title: "反演問題與科學解謎", icon: "book-open", q: "科學家怎麼從波形推算斷層在哪？", a: "使用像偵探解謎的技術——「反演問題」。", explanation: "從結果（地震圖）向後推導原因（震源）。有時不同的地底構造會產生相似波形，這稱為非唯一解。", analogy: "聽到臥室砰的一聲，你要判斷是書掉了還是瓶子破了。", funFact: "現代地震學家動用超級電腦模擬三維構造來尋找最準確的唯一解。" },
+            { id: 10, title: "板塊構造學說的整合", icon: "globe", q: "為什麼地震大多集中在某些國家？", a: "這就是「板塊構造學說」的印證！", explanation: "地震帶完美勾勒出板塊邊界。特別是隱沒帶（如台灣、日本），積累應力後釋放引發強震。", analogy: "地球像茶葉蛋，裂縫處（板塊邊界）最容易碎裂。", funFact: "班尼奧夫帶證明了板塊真的「鑽入」了地球內部。" }
+        ];
+
+        function App() {
+            const [openId, setOpenId] = useState(null);
+
+            return (
+                <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
+                    <header className="bg-white rounded-xl shadow-md p-6 mb-8 border-l-4 border-blue-600 flex flex-col md:flex-row items-center gap-6">
+                        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0">
+                            <Icon name="globe" className="w-10 h-10" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900">地震學大師的探索筆記</h1>
+                            <p className="text-slate-600">你好！我是你的地震學導師。讓我們透過地震波，解開地球內部的奧秘。</p>
+                        </div>
+                    </header>
+
+                    <main className="space-y-4">
+                        {topics.map(t => (
+                            <div key={t.id} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                                <button 
+                                    onClick={() => setOpenId(openId === t.id ? null : t.id)}
+                                    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-4 text-left">
+                                        <div className="p-2 bg-slate-100 rounded-lg text-blue-500">
+                                            <Icon name={t.icon} className="w-6 h-6" />
+                                        </div>
+                                        <span className="font-bold text-lg">{t.id}. {t.title}</span>
+                                    </div>
+                                    <Icon name={openId === t.id ? "chevron-up" : "chevron-down"} className="text-slate-400" />
+                                </button>
+                                {openId === t.id && (
+                                    <div className="p-6 pt-2 bg-slate-50 border-t border-slate-100">
+                                        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400 mb-4">
+                                            <p className="font-bold text-blue-900 mb-1">Q: {t.q}</p>
+                                            <p className="text-blue-800">A: {t.a}</p>
+                                        </div>
+                                        <div className="space-y-4 text-slate-700">
+                                            <p><strong>大師解說：</strong><br/>{t.explanation}</p>
+                                            {t.svg && <div className="py-2">{t.svg}</div>}
+                                            <div className="bg-orange-50 p-3 rounded text-orange-900 text-sm">
+                                                <strong>💡 生活類比：</strong>{t.analogy}
+                                            </div>
+                                            <div className="bg-emerald-50 p-3 rounded text-emerald-900 text-sm">
+                                                <strong>🌍 趣味小知識：</strong>{t.funFact}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </main>
+
+                    <footer className="mt-8 text-center p-8 bg-slate-800 rounded-xl text-white shadow-lg">
+                        <h3 className="text-xl font-bold mb-2">對地球的探索永無止盡</h3>
+                        <p className="text-slate-400 mb-6 text-sm">科學的學習建立在不斷的提問上。若有任何疑問，歡迎隨時深入探索。</p>
+                        <button 
+                            onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+                            className="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-full font-bold transition-all"
+                        >
+                            回到頂部
+                        </button>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
